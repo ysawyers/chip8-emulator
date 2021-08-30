@@ -49,8 +49,8 @@ var V[16]uint8 // general cpu registers V0 - VF (16) *VF used as a carry flag fo
 var I uint16 // store memory addresses
 var pc uint16 // current executing address
 var sp uint16 // points to the topmost level of the stack
-var delay_timer uint8 // delay timer
-var sound_timer uint8 // sound timer
+var delayTimer uint8 // delay timer
+var soundTimer uint8 // sound timer
 
 // Initializes CPU
 func Initialize() {
@@ -69,16 +69,16 @@ func LoadGame(file_path string) {
 		log.Fatal(err)
 	}
 
-	file_len, err := file.Stat()
+	fileStats, err := file.Stat()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	defer file.Close()
 
-	ROM_data := readNextBytes(file, file_len.Size())
-	for i := 0; i < len(ROM_data); i++ {
-		memory[START_ADDRESS + i] = ROM_data[i]
+	romData := readNextBytes(file, fileStats.Size())
+	for i := 0; i < len(romData); i++ {
+		memory[START_ADDRESS + i] = romData[i]
 	}
 
 	fmt.Println(memory)
