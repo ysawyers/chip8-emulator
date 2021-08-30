@@ -7,31 +7,48 @@ MAIN GAME LOOP
 */
 
 import (
-	"fmt"
-	"runtime"
-	"github.com/go-gl/gl/v2.1/gl"
-    "github.com/go-gl/glfw/v3.3/glfw"
+	fmt "fmt"
+	runtime "runtime"
+	log "log"
+
+	chip8 "github.com/BigBellyBigDreams/chip8-emulator/chip8"
+	gl "github.com/go-gl/gl/v2.1/gl"
+	glfw "github.com/go-gl/glfw/v3.3/glfw"
+)
+
+const (
+	CHIP8_WIDTH = 64
+	CHIP8_HEIGHT = 32
+	DISPLAY_SCALE = 15
 )
 
 func main() {
-	runtime.LockOSThread() // GLFW requires everything to run on a single thread
+	runtime.LockOSThread() // glfw requires everything to run on a single thread
 
 	window := initGlfw()
 	defer glfw.Terminate()
-	
 	program := initOpenGL()
-	setupInput()
+
+	chip8.Initialize()
+	chip8.LoadGame("/Users/yonden/Desktop/chip8-emulator/roms/PONG") // temporary for testing
 
 	for !window.ShouldClose() {
 		draw(window, program)
+
+		chip8.EmulateCycle()
+
+		if chip8.DrawFlag() {
+			drawGraphics()
+		}
+
+		chip8.SetKeys()
 	}
 }
 
 // initializes glfw window & properties
 func initGlfw() *glfw.Window {
-	err := glfw.Init()
-	if err != nil {
-		panic(err)
+	if err := glfw.Init(); err != nil {
+		log.Fatal(err)
 	}
 
 	glfw.WindowHint(glfw.Resizable, glfw.False)
@@ -40,10 +57,9 @@ func initGlfw() *glfw.Window {
 	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
 	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
 
-	width, height := 500, 500
-	window, err := glfw.CreateWindow(width, height, "CHIP-8 EMULATOR", nil, nil)
+	window, err := glfw.CreateWindow(CHIP8_WIDTH * DISPLAY_SCALE, CHIP8_HEIGHT * DISPLAY_SCALE, "CHIP-8 EMULATOR", nil, nil)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	window.MakeContextCurrent()
 
@@ -58,9 +74,9 @@ func initOpenGL() uint32 {
     version := gl.GoStr(gl.GetString(gl.VERSION))
     fmt.Println("OpenGL version", version)
 
-    prog := gl.CreateProgram()
-    gl.LinkProgram(prog)
-    return prog
+    program := gl.CreateProgram()
+    gl.LinkProgram(program)
+    return program
 }
 
 // draws initial game state
@@ -72,6 +88,6 @@ func draw(window *glfw.Window, program uint32) {
     window.SwapBuffers() // GLFW lib uses double buffering
 }
 
-func setupInput() {
+func drawGraphics() {
 	// TODO
 }
