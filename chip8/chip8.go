@@ -1,25 +1,18 @@
 package chip8
 
-/*
-==============
-opcode processor
-==============
-*/
-
 import (
-	fmt "fmt"
+	rand "math/rand"
 	log "log"
 	os "os"
 )
 
 const (
-	CHIP8_WIDTH = 64
-	CHIP8_HEIGHT = 32
-	DISPLAY_SCALE = 15
-	GFX_SIZE = (CHIP8_WIDTH * CHIP8_HEIGHT) * DISPLAY_SCALE
+	FONTSET_SIZE = 80
+	MEMORY_START_ADDRESS = 0x200
+	FONTSET_START_ADDRESS = 0x050
 )
 
-var characters = []uint8 {
+var fontset = [FONTSET_SIZE]uint8 {
 	0xF0, 0x90, 0x90, 0x90, 0xF0, //0
 	0x20, 0x60, 0x20, 0x20, 0x70, //1
 	0xF0, 0x10, 0xF0, 0x80, 0xF0, //2
@@ -39,11 +32,11 @@ var characters = []uint8 {
 }
 
 var memory[4096]uint8 // 4k memory
-var gfx[GFX_SIZE]uint8 // display
+var Gfx[64 * 32]uint8 // video buffer
 
 var opcode uint16 // current opcode (instruction)
 var stack [16]uint16 // 16 levels of the stack in total
-var key [16]uint8 // current state of the key
+var Keys [16]uint8 // current state of the key
 
 var V[16]uint8 // general cpu registers V0 - VF (16) *VF used as a carry flag for some intructions
 var I uint16 // store memory addresses
@@ -54,16 +47,15 @@ var soundTimer uint8 // sound timer
 
 // Initializes CPU
 func Initialize() {
-	const START_ADDRESS int = 0x050
-	for i := 0; i < len(characters); i++ {
-		memory[START_ADDRESS + i] = characters[i]
+	for i := 0; i < FONTSET_SIZE; i++ {
+		memory[FONTSET_START_ADDRESS + i] = fontset[i]
 	}
+
+	pc = MEMORY_START_ADDRESS
 }
 
 // fetches data from c8 file and stores it in memory
 func LoadGame(file_path string) {
-	const START_ADDRESS int = 0x200
-
 	file, err := os.Open(file_path)
 	if err != nil {
 		log.Fatal(err)
@@ -78,22 +70,16 @@ func LoadGame(file_path string) {
 
 	romData := readNextBytes(file, fileStats.Size())
 	for i := 0; i < len(romData); i++ {
-		memory[START_ADDRESS + i] = romData[i]
+		memory[MEMORY_START_ADDRESS + i] = romData[i]
 	}
-
-	fmt.Println(memory)
 }
 
 func EmulateCycle() {
-	// TODO
+	// Process opcodes
 }
 
 func DrawFlag() bool {
-	return true
-}
-
-func SetKeys() {
-	// TODO
+	return false
 }
 
 // parses n number of bytes in the file
@@ -106,4 +92,9 @@ func readNextBytes(file *os.File, n int64) []uint8 {
 	}
 
 	return bytes
+}
+
+func randGen() uint8 {
+	randByte := uint8(rand.Intn(255))
+	return randByte
 }
