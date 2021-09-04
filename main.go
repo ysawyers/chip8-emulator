@@ -4,6 +4,7 @@ import (
 	fmt "fmt"
 	runtime "runtime"
 	log "log"
+	"time"
 
 	c8 "github.com/BigBellyBigDreams/chip8-emulator/chip8"
 	gl "github.com/go-gl/gl/v2.1/gl"
@@ -16,6 +17,8 @@ const (
 	DISPLAY_SCALE = 15
 )
 
+var quit = false
+
 func main() {
 	runtime.LockOSThread() // glfw requires everything to run on a single thread
 
@@ -27,16 +30,22 @@ func main() {
 	c8.LoadGame("/Users/yonden/Desktop/chip8-emulator/roms/PONG") // temporary for testing
 
 	for !window.ShouldClose() {
-		glfw.PollEvents() // figure out what this does**
+		if quit {
+			break;
+		} else {
+			glfw.PollEvents() // figure out what this does**
 
-		c8.EmulateCycle() // process opcodes
+			c8.EmulateCycle() // process opcodes
+			// c8.CurrentOpcodeDebug()
 
-		if c8.DrawFlag() {
-			drawGraphics()
-			window.SwapBuffers() // display visual changes from back buffer to front buffer
+			if c8.DrawFlag {
+				// drawGraphics() ERROR HERE
+				window.SwapBuffers() // display visual changes from back buffer to front buffer
+			}
+
+			window.SetKeyCallback(processInput) // listen to keyboard events on the window and process them
+			time.Sleep((1000 / 60) * time.Millisecond) // Delay to execute 60 opcodes per second
 		}
-
-		window.SetKeyCallback(processInput) // listen to keyboard events on the window and process them
 	}
 }
 
@@ -75,17 +84,19 @@ func initOpenGL() uint32 {
 }
 
 func drawGraphics() {
-	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	// gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT) ERROR: CREATING SEGFAULT
 
 	// add pixel information to video buffer
 	// map that to back buffer
+	c8.DrawFlag = false
 }
 
 func processInput(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
 	if action == 1 {
 		switch key {
 		case 259:
-			fmt.Println("Quit Program")
+			quit = true
+			break
 		case 88:
 			c8.Keys[0] = 1
 		case 49:
