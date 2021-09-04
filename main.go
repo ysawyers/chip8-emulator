@@ -20,6 +20,10 @@ const (
 var quit = false
 
 func main() {
+	var file_path string
+	fmt.Print("Enter game path: ")
+	fmt.Scanf("%s", &file_path)
+	
 	runtime.LockOSThread() // glfw requires everything to run on a single thread
 
 	window := initGlfw()
@@ -27,7 +31,7 @@ func main() {
 	// program := initOpenGL()
 
 	c8.Initialize() // initialize CPU
-	c8.LoadGame("/Users/yonden/Desktop/chip8-emulator/roms/PONG") // temporary for testing
+	c8.LoadGame(file_path) // temporary for testing
 
 	for !window.ShouldClose() {
 		if quit {
@@ -84,8 +88,6 @@ func initOpenGL() uint32 {
 }
 
 func drawGraphics() {
-	// gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT) ERROR: CREATING SEGFAULT
-
 	// add pixel information to video buffer
 	// map that to back buffer
 	c8.DrawFlag = false
