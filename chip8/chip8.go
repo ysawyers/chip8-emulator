@@ -32,7 +32,7 @@ var fontset = [80]uint8 {
 }
 
 var memory[4096]uint8 // 4k memory
-var Gfx[(64 * 32) * 15]uint8 // video buffer
+var Gfx[32][64]uint8 // video buffer
 var DrawFlag bool
 
 var opcode uint16 // current opcode (instruction)
@@ -89,7 +89,9 @@ func EmulateCycle() { // implement function pointers in the future instead of sw
 		switch opcode & 0x000F {
 		case 0x0000: // 00E0: Clears the screen
 			for i := 0; i < len(Gfx); i++ {
-				Gfx[i] = 0
+				for j := 0; j < len(Gfx[i]); j++ {
+					Gfx[i][j] = 0x0
+				}
 			}
 			DrawFlag = true
 			pc += 2
@@ -218,13 +220,25 @@ func EmulateCycle() { // implement function pointers in the future instead of sw
 		pc += 2
 	
 	case 0xD000: // Dxyn: Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision
-		// x := V[(opcode & 0x0F00) >> 8]
-		// y := V[(opcode & 0x00F0) >> 4]
-		// h := opcode & 0x000F
+		x := V[(opcode & 0x0F00) >> 8]
+		y := V[(opcode & 0x00F0) >> 4]
+		h := opcode & 0x000F
 		V[0xF] = 0
 
-		// TODO
-
+		var i uint16 = 0 
+		var j uint16 = 0
+		for j = 0; j < h; j++ {
+			pixel := memory[I + j]
+			for i = 0; i < 8; i++ {
+				if (pixel & (0x80 >> i)) != 0 {
+					if Gfx[y + uint8(j)][x + uint8(i)] == 1 {
+						V[0xF] = 1
+					}
+					Gfx[y + uint8(j)][x + uint8(i)] ^= 1
+				}
+			}
+		}
+		
 		DrawFlag = true
 		pc += 2
 	
