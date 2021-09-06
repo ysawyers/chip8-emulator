@@ -7,10 +7,7 @@ import (
 	os "os"
 )
 
-const (
-	MEMORY_START_ADDRESS = 0x200
-	FONTSET_START_ADDRESS = 0x050
-)
+const MEMORY_START_ADDRESS = 0x200
 
 var fontset = [80]uint8 {
 	0xF0, 0x90, 0x90, 0x90, 0xF0, //0
@@ -55,7 +52,7 @@ func Initialize() {
 	DrawFlag = false // Reset draw flag to false
 
 	for i := 0; i < len(fontset); i++ {
-		memory[FONTSET_START_ADDRESS + i] = fontset[i]
+		memory[i] = fontset[i]
 	}
 }
 
@@ -228,13 +225,13 @@ func EmulateCycle() { // implement function pointers in the future instead of sw
 		var i uint16 = 0 
 		var j uint16 = 0
 		for j = 0; j < h; j++ {
-			pixel := memory[I + j]
+			pixel := memory[(I + j)]
 			for i = 0; i < 8; i++ {
 				if (pixel & (0x80 >> i)) != 0 {
-					if Gfx[y + uint8(j)][x + uint8(i)] == 1 {
+					if Gfx[(y + uint8(j))][(x + uint8(i))] == 1 {
 						V[0xF] = 1
 					}
-					Gfx[y + uint8(j)][x + uint8(i)] ^= 1
+					Gfx[(y + uint8(j))][(x + uint8(i))] ^= 1
 				}
 			}
 		}
@@ -280,6 +277,7 @@ func EmulateCycle() { // implement function pointers in the future instead of sw
 			if !KeyPress {
 				return
 			}
+			pc += 2
 		
 		case 0x0015: // Fx15: Set delay timer = Vx
 			delayTimer = V[(opcode & 0x0F00) >> 8]

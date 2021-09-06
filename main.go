@@ -2,172 +2,138 @@ package main
 
 import (
 	fmt "fmt"
-	runtime "runtime"
-	log "log"
-	"time"
+	// log "log"
+	time "time"
+	strings "strings"
 
 	c8 "github.com/BigBellyBigDreams/chip8-emulator/chip8"
-	gl "github.com/go-gl/gl/v2.1/gl"
-	glfw "github.com/go-gl/glfw/v3.3/glfw"
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 const (
-	CHIP8_WIDTH = 64
-	CHIP8_HEIGHT = 32
-	DISPLAY_SCALE = 15
+	WIDTH = 64
+	HEIGHT = 32
+	VIDEO_SCALE = 15
 )
 
-var quit = false
+var filePath string
+var windowTitle string
 
 func main() {
-	var file_path string
 	fmt.Print("Enter game path: ")
-	fmt.Scanf("%s", &file_path)
-	
-	runtime.LockOSThread() // glfw requires everything to run on a single thread
+	fmt.Scanf("%s", &filePath) 
 
-	window := initGlfw()
-	defer glfw.Terminate()
-	// program := initOpenGL()
+	c8.Initialize() // Initialize CPU
+	c8.LoadGame(filePath) // Load Game Into Memory
 
-	c8.Initialize() // initialize CPU
-	c8.LoadGame(file_path) // temporary for testing
+	tempArr := strings.Split(filePath, "/")
+	windowTitle = tempArr[(len(tempArr) - 1)] 
 
-	for !window.ShouldClose() {
-		if quit {
-			break;
-		} else {
-			glfw.PollEvents() // figure out what this does**
+	rl.InitWindow(WIDTH * VIDEO_SCALE, HEIGHT * VIDEO_SCALE, windowTitle)
 
-			c8.EmulateCycle() // process opcodes
-			// c8.CurrentOpcodeDebug()
+	for !rl.WindowShouldClose() {
+		rl.BeginDrawing()
 
-			if c8.DrawFlag {
-				// drawGraphics() ERROR HERE
-				window.SwapBuffers() // display visual changes from back buffer to front buffer
-			}
+		c8.EmulateCycle() // Decoding & Executing opcodes
+		// c8.CurrentOpcodeDebug() 
 
-			window.SetKeyCallback(processInput) // listen to keyboard events on the window and process them
-			time.Sleep((1000 / 60) * time.Millisecond) // Delay to execute 60 opcodes per second
+		if c8.DrawFlag { // Draw If Flag Is Detected
+			rl.ClearBackground(rl.Black)
+			drawGraphics()
+			rl.EndDrawing()
 		}
+		processInput()
+
+		time.Sleep((1000 / 120) * time.Millisecond) // 60 Hz (60 iterations per second)
 	}
-}
-
-// initializes glfw window & properties
-func initGlfw() *glfw.Window {
-	if err := glfw.Init(); err != nil {
-		log.Fatal(err)
-	}
-
-	glfw.WindowHint(glfw.Resizable, glfw.False)
-	glfw.WindowHint(glfw.ContextVersionMajor, 4) // OR 2
-	glfw.WindowHint(glfw.ContextVersionMinor, 1)
-	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
-	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
-
-	window, err := glfw.CreateWindow(CHIP8_WIDTH * DISPLAY_SCALE, CHIP8_HEIGHT * DISPLAY_SCALE, "CHIP-8 EMULATOR", nil, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	window.MakeContextCurrent()
-
-	return window
-}
-
-// initializes openGL & creates program
-func initOpenGL() uint32 {
-    if err := gl.Init(); err != nil {
-            panic(err)
-    }
-    version := gl.GoStr(gl.GetString(gl.VERSION))
-    fmt.Println("OpenGL version", version)
-
-    program := gl.CreateProgram()
-    gl.LinkProgram(program)
-    return program
+	rl.CloseWindow()
 }
 
 func drawGraphics() {
-	// add pixel information to video buffer
-	// map that to back buffer
+	for j := 0; j < len(c8.Gfx); j ++ {
+		for i := 0; i < len(c8.Gfx[j]); i++ {
+			x := i * VIDEO_SCALE
+			y := j * VIDEO_SCALE
+			if c8.Gfx[j][i] != 0 {	
+				rl.DrawRectangle(int32(x), int32(y), VIDEO_SCALE, VIDEO_SCALE, rl.White)
+			} else {
+				rl.DrawRectangle(int32(x), int32(y), VIDEO_SCALE, VIDEO_SCALE, rl.Black)
+			}
+		}
+	}
 	c8.DrawFlag = false
 }
 
-func processInput(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
-	if action == 1 {
-		switch key {
-		case 259:
-			quit = true
-			break
-		case 88:
-			c8.Keys[0] = 1
-		case 49:
-			c8.Keys[1] = 1
-		case 50:
-			c8.Keys[2] = 1
-		case 51:
-			c8.Keys[3] = 1
-		case 81:
-			c8.Keys[4] = 1
-		case 87:
-			c8.Keys[5] = 1
-		case 69:
-			c8.Keys[6] = 1
-		case 65:
-			c8.Keys[7] = 1
-		case 83:
-			c8.Keys[8] = 1
-		case 68:
-			c8.Keys[9] = 1
-		case 90:
+func processInput() {
+	switch true {
+		case rl.IsKeyDown(259): // Backspace 
+			rl.CloseWindow()
+		case rl.IsKeyDown(88): // X
+			c8.Keys[0x0] = 1
+		case rl.IsKeyDown(49): // 1
+			c8.Keys[0x1] = 1
+		case rl.IsKeyDown(50): // 2
+			c8.Keys[0x2] = 1
+		case rl.IsKeyDown(51): // 3
+			c8.Keys[0x3] = 1
+		case rl.IsKeyDown(81): // Q
+			c8.Keys[0x4] = 1
+		case rl.IsKeyDown(87): // W
+			c8.Keys[0x5] = 1
+		case rl.IsKeyDown(69): // E
+			c8.Keys[0x6] = 1
+		case rl.IsKeyDown(65): // A
+			c8.Keys[0x7] = 1
+		case rl.IsKeyDown(83): // S
+			c8.Keys[0x8] = 1
+		case rl.IsKeyDown(68): // D
+			c8.Keys[0x9] = 1
+		case rl.IsKeyDown(90): // Z
 			c8.Keys[0xA] = 1
-		case 67:
+		case rl.IsKeyDown(67): // C
 			c8.Keys[0xB] = 1
-		case 52:
+		case rl.IsKeyDown(52): // 4
 			c8.Keys[0xC] = 1
-		case 82:
+		case rl.IsKeyDown(82): // R
 			c8.Keys[0xD] = 1
-		case 70:
+		case rl.IsKeyDown(70): // F
 			c8.Keys[0xE] = 1
-		case 86:
+		case rl.IsKeyDown(86): // V
 			c8.Keys[0xF] = 1
 		}
-	} else if action == 0 {
-		switch key {
-		case 259:
-			fmt.Println("Quit Program")
-		case 88:
-			c8.Keys[0] = 0
-		case 49:
-			c8.Keys[1] = 0
-		case 50:
-			c8.Keys[2] = 0
-		case 51:
-			c8.Keys[3] = 0
-		case 81:
-			c8.Keys[4] = 0
-		case 87:
-			c8.Keys[5] = 0
-		case 69:
-			c8.Keys[6] = 0
-		case 65:
-			c8.Keys[7] = 0
-		case 83:
-			c8.Keys[8] = 0
-		case 68:
-			c8.Keys[9] = 0
-		case 90:
+	
+		switch true {
+		case rl.IsKeyReleased(88):
+			c8.Keys[0x0] = 0
+		case rl.IsKeyReleased(49):
+			c8.Keys[0x1] = 0
+		case rl.IsKeyReleased(50):
+			c8.Keys[0x2] = 0
+		case rl.IsKeyReleased(51):
+			c8.Keys[0x3] = 0
+		case rl.IsKeyReleased(81):
+			c8.Keys[0x4] = 0
+		case rl.IsKeyReleased(87):
+			c8.Keys[0x5] = 0
+		case rl.IsKeyReleased(69):
+			c8.Keys[0x6] = 0
+		case rl.IsKeyReleased(65):
+			c8.Keys[0x7] = 0
+		case rl.IsKeyReleased(83):
+			c8.Keys[0x8] = 0
+		case rl.IsKeyReleased(68):
+			c8.Keys[0x9] = 0
+		case rl.IsKeyReleased(90):
 			c8.Keys[0xA] = 0
-		case 67:
+		case rl.IsKeyReleased(67):
 			c8.Keys[0xB] = 0
-		case 52:
+		case rl.IsKeyReleased(52):
 			c8.Keys[0xC] = 0
-		case 82:
+		case rl.IsKeyReleased(82):
 			c8.Keys[0xD] = 0
-		case 70:
+		case rl.IsKeyReleased(70):
 			c8.Keys[0xE] = 0
-		case 86:
+		case rl.IsKeyReleased(86):
 			c8.Keys[0xF] = 0
 		}
-	}
 }
